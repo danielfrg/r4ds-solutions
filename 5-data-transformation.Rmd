@@ -5,9 +5,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
 library(nycflights13)
 library(tidyverse)
 ```
+
 
 # 5.1 Introduction
 
