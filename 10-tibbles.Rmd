@@ -86,42 +86,115 @@ as.data.frame(df)
 
 1. How can you tell if an object is a tibble? (Hint: try printing mtcars, which is a regular data frame).
 
+`typeof()` doesn't work, as it says both are a `list`.
+
+```{r}
+typeof(mtcars)
+typeof(diamonds)
+```
+
+Use `is_tibble()`.
+
+```{r}
+is_tibble(mtcars)
+is_tibble(diamonds)
+```
+
+Printing the objects is different between the two 
+
 2. Compare and contrast the following operations on a data.frame and equivalent tibble. What is different? Why might the default data frame behaviours cause you frustration?
 
 ```{r}
 df <- data.frame(abc = 1, xyz = "a")
+df
 df$x
 df[, "xyz"]
 df[, c("abc", "xyz")]
 ```
 
+```{r}
+tbl <- tibble(
+  abc = 1, 
+  xyz = "a"
+)
+tbl
+tbl$x
+tbl[, "xyz"]
+tbl[, c("abc", "xyz")]
+```
+
+Its not really expected that `df$x` to work as the column name is `xyz` not just `x`, `data.frame` will complete but its not consistent as changing the data might make it complete differently without changing the code.
+
+Also `data.frame` returns differint types if you index one columns (vector) or index multiple columns (another data.frame). A tibble always returns another tibble when indexing.
+
 3. If you have the name of a variable stored in an object, e.g. var <- "mpg", how can you extract the reference variable from a tibble?
 
-4. Practice referring to non-syntactic names in the following data frame by:
+We can just use the `[]` and `[[]]` expressions. The first one returns a tibble and the second one the vector of that columns.
 
-- Extracting the variable called 1.
-- Plotting a scatterplot of 1 vs 2.
-- Creating a new column called 3 which is 2 divided by 1.
-- Renaming the columns to one, two and three.
+```{r}
+var <- "mpg"
+
+cars_tbl <- as_tibble(mtcars)
+cars_tbl[var]
+cars_tbl[[var]]
+```
+
+4. Practice referring to non-syntactic names in the following data frame by:
 
 ```{r}
 annoying <- tibble(
   `1` = 1:10,
   `2` = `1` * 2 + rnorm(length(`1`))
 )
+
+annoying
+```
+
+- Extracting the variable called 1.
+
+```{r}
+# annoying$1 # Doesn't work
+annoying$`1`
+annoying["1"]
+```
+
+- Plotting a scatterplot of 1 vs 2.
+
+```{r}
+annoying %>% 
+  ggplot() + 
+  geom_point(aes(x = `1`, y = `2`))
+```
+
+- Creating a new column called 3 which is 2 divided by 1.
+
+```{r}
+annoying <-
+  annoying %>%
+  mutate(`3` = `2` / `1`)
+annoying
+```
+
+- Renaming the columns to one, two and three.
+
+```{r}
+annoying %>%
+  rename(one = `1`, two = `2`, three = `3`)
 ```
 
 5. What does tibble::enframe() do? When might you use it?
 
+```{r}
+?enframe
+```
+
+It converts named vectors or list to two-column data frames.
+
+```{r}
+enframe(c(a = 1, b = 2, c = 3))
+enframe(list(female = 1, male = 2))
+```
+
 6. What option controls how many additional column names are printed at the footer of a tibble?
 
-
-
-
-
-
-
-
-
-
-
+`options(tibble.width = Inf)` for all columns to be printed.
