@@ -1,0 +1,358 @@
+---
+title: "11 - Data Import"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+# 11.2 Getting started
+
+```{r}
+heights <- read_csv("data/heights.csv")
+```
+
+Some common arguments:
+
+```{r}
+read_csv("The first line of metadata
+  The second line of metadata
+  x,y,z
+  1,2,3", skip = 2)
+read_csv("1,2,3\n4,5,6", col_names = FALSE)
+read_csv("1,2,3\n4,5,6", col_names = c("x", "y", "z"))
+read_csv("a,b,c\n1,2,.", na = ".")
+```
+
+## 11.2.2 Exercises
+
+1. What function would you use to read a file where fields were separated with “|”?
+
+`read_delim()`
+
+```{r}
+read_delim("a|b|c\n1|2|3", delim = "|")
+```
+
+2. Apart from file, skip, and comment, what other arguments do read_csv() and read_tsv() have in common?
+
+```{r}
+?read_csv
+?read_tsv
+```
+
+A lot (all?) they both use `read_delim` with different defaults. For example: `col_names`, `quote`, `na`, `n_max`.
+
+3. What are the most important arguments to read_fwf()?
+
+```{r}
+?read_fwf
+```
+
+`col_positions`, becuase thats how it knows where to look for values on the columns.
+
+4. Sometimes strings in a CSV file contain commas. To prevent them from causing problems they need to be surrounded by a quoting character, like " or '. By convention, read_csv() assumes that the quoting character will be ", and if you want to change it you’ll need to use read_delim() instead. What arguments do you need to specify to read the following text into a data frame?
+
+```
+"x,y\n1,'a,b'"
+```
+
+```{r}
+read_csv("x,y\n1,'a,b'", quote="'")
+read_delim("x,y\n1,'a,b'", delim = ",",  quote = "'")
+```
+
+5. Identify what is wrong with each of the following inline CSV files. What happens when you run the code?
+
+```{r}
+read_csv("a,b\n1,2,3\n4,5,6")
+```
+
+There is only two columns in the first row so `read_csv()` will read those two columns and ignore the other values.
+
+```{r}
+read_csv("a,b,c\n1,2\n1,2,3,4")
+```
+
+There is 3 cols in the header, 2 values in one row, 4 values in the second row. The resulting tibble is of 3 columns, first one has an extra missing value and the 4th column values are ignored.
+
+```{r}
+read_csv("a,b\n\"1")
+```
+
+Missing value for the `b` column is added for the first row that doesn't have that value.
+
+```{r}
+read_csv("a,b\n1,2\na,b")
+```
+
+It reads the values fine but both columns are parsed as character columns.
+
+```{r}
+read_csv("a;b\n1;3")
+```
+
+The delimiter is not set correctly to `;`, it should be:
+
+```{r}
+read_delim("a;b\n1;3", delim = ";")
+```
+
+# 11.3 Parsing a vector
+
+Take a character vector and return an specialised vector.
+
+```{r}
+str(parse_logical(c("TRUE", "FALSE", "NA")))
+str(parse_integer(c("1", "2", "3")))
+str(parse_date(c("2010-01-01", "1979-10-14")))
+```
+
+Failures will be saved in a tibble
+
+```{r}
+x <- parse_integer(c("123", "345", "abc", "123.45"))
+x
+problems(x)
+```
+
+## 11.3.1 Numbers
+
+`readr` has the concept of `locale()` to handle different formats.
+
+```{r}
+parse_double("1.23")
+parse_double("1,23", locale = locale(decimal_mark = ","))
+```
+
+```{r}
+parse_number("$100")
+#> [1] 100
+parse_number("20%")
+parse_number("It cost $123.45")
+```
+
+```{r}
+parse_number("$123,456,789")
+parse_number("123.456.789", locale = locale(grouping_mark = "."))
+parse_number("123'456'789", locale = locale(grouping_mark = "'"))
+```
+
+## 11.3.2 Strings
+
+`readr` uses `UTF-8` as default for reads and writes!
+
+We can use `locale()` also for strings.
+
+```{r}
+x1 <- "El Ni\xf1o was particularly bad this year"
+x2 <- "\x82\xb1\x82\xf1\x82\xc9\x82\xbf\x82\xcd"
+x1
+x2
+```
+
+```{r}
+parse_character(x1, locale = locale(encoding = "Latin1"))
+parse_character(x2, locale = locale(encoding = "Shift-JIS"))
+```
+
+```{r}
+guess_encoding(charToRaw(x1))
+guess_encoding(charToRaw(x2))
+```
+
+## 11.3.3 Factors
+
+Similar to parsing numbers, error will be put in a dataframe.
+
+```{r}
+fruit <- c("apple", "banana")
+parse_factor(c("apple", "banana", "bananana"), levels = fruit)
+```
+
+## 11.3.4 Dates, date-times, and times
+
+- date (the number of days since 1970-01-01)
+- date-time (the number of seconds since midnight 1970-01-01)
+- time (the number of seconds since midnight)
+
+`parse_datetime()` (by default) expects an ISO8601 date.
+
+```{r}
+parse_datetime("2010-10-01T2010")
+parse_datetime("20101010")
+```
+
+```{r}
+parse_date("2010-10-01")
+```
+
+```{r}
+library(hms)
+parse_time("01:10 am")
+parse_time("20:10:01")
+```
+
+We can always overwrite with `format`.
+
+```{r}
+parse_date("01/02/15", format = "%m/%d/%y")
+parse_date("01/02/15", "%d/%m/%y")
+parse_date("01/02/15", "%y/%m/%d")
+```
+
+## 11.3.5 Exercises
+
+1. What are the most important arguments to locale()?
+
+```{r}
+?locale
+```
+
+`encoding` is probably my number 1. After that `date_format`, `time_format` and `tz`.
+
+2. What happens if you try and set decimal_mark and grouping_mark to the same character? 
+
+Cannot be the same:
+
+```{r}
+parse_number("123.32", locale = locale(decimal_mark = ".", grouping_mark = "."))
+```
+
+- What happens to the default value of grouping_mark when you set decimal_mark to “,”?
+- What happens to the default value of decimal_mark when you set the grouping_mark to “.”?
+
+The defaults are inverted to the value that is set.
+
+```{r}
+locale(decimal_mark = ",")
+locale(grouping_mark = ",")
+```
+
+3. I didn’t discuss the date_format and time_format options to locale(). What do they do? Construct an example that shows when they might be useful.
+
+They are the formats for time and dates:
+
+```{r}
+parse_date("05-02-00", locale = locale(date_format = "%d-%m-%y"))
+parse_time("02-00-08 am", locale = locale(time_format = "%M-%S-%I %p"))
+```
+
+4. If you live outside the US, create a new locale object that encapsulates the settings for the types of file you read most commonly.
+
+```{r}
+locale(date_names = "es",
+       date_format = "%Y/%m/%d",
+       time_format = "%H/%M/%S",
+       decimal_mark = ".")
+```
+
+5. What’s the difference between read_csv() and read_csv2()?
+
+```{r}
+?read_csv
+?read_csv2
+```
+
+`read_csv()` uses `,` as delimiter. `read_csv2()` uses `;` as delimiter.
+
+6. What are the most common encodings used in Europe? What are the most common encodings used in Asia? Do some googling to find out.
+
+7. Generate the correct format string to parse each of the following dates and times:
+
+```{r}
+d1 <- "January 1, 2010"
+d2 <- "2015-Mar-07"
+d3 <- "06-Jun-2017"
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+d5 <- "12/30/14" # Dec 30, 2014
+t1 <- "1705"
+t2 <- "11:15:10.12 PM"
+```
+
+```{r}
+parse_date(d1, locale = locale(date_format = "%B %d, %Y"))
+parse_date(d2, locale = locale(date_format = "%Y-%b-%d"))
+parse_date(d3, locale = locale(date_format = "%d-%b-%Y"))
+parse_date(d4, "%B %d (%Y)")
+parse_date(d5, "%m/%d/%y")
+parse_time(t1, "%H%M")
+parse_time(t2, "%I:%M:%OS %p")  # OS: real seconds
+```
+
+# 11.4 Parsing a file
+
+`readr` uses some conservative heuristics to guess the types of columns by reading the first 1000 rows. We can use `guess_parser()` to emulate this.
+
+```{r}
+guess_parser("2010-10-01")
+guess_parser(c("1", "5", "9"))
+
+str(parse_guess("2010-10-10"))
+```
+
+```{r}
+challenge <- read_csv(readr_example("challenge.csv"))
+problems(challenge)
+```
+
+We can always overwrite the heuristics.
+
+```{r}
+challenge <- read_csv(
+  readr_example("challenge.csv"), 
+  col_types = cols(
+    x = col_double(),
+    y = col_date()
+  )
+)
+tail(challenge)
+```
+
+# 11.5 Writing to a file
+
+`write_csv()` and `write_tsv()` can be used to save files to disk. The default is to use `UTF-8` and `ISO8601`.
+
+```{r}
+write_csv(challenge, "output/challenge.csv")
+```
+
+We can also save this in a R binary format that saves the types and more information
+
+```{r}
+write_rds(challenge, "output/challenge.rds")
+read_rds("output/challenge.rds")
+```
+
+Feather is another alternative that is not specific to R
+
+```{r}
+# install.packages("feather")
+library(feather)
+write_feather(challenge, "output/challenge.feather")
+read_feather("output/challenge.feather")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
