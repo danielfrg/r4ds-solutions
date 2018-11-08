@@ -337,22 +337,3 @@ library(feather)
 write_feather(challenge, "output/challenge.feather")
 read_feather("output/challenge.feather")
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
