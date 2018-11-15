@@ -1,0 +1,162 @@
+---
+title: "18-pipes"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(magrittr)
+```
+
+Pipes `%>%` come from `magirttr`.
+
+# 18.2 Alternatives
+
+Creating variables
+
+```r
+foo_foo_1 <- hop(foo_foo, through = forest)
+foo_foo_2 <- scoop(foo_foo_1, up = field_mice)
+foo_foo_3 <- bop(foo_foo_2, on = head)
+```
+
+This is not terrible for memory since R is smart and will only copy columnn from dataframe when they change:
+
+```{r}
+# install.packages("pryr")
+```
+
+
+```{r}
+library(tidyverse)
+library(pryr)
+
+diamonds <- ggplot2::diamonds
+diamonds2 <- diamonds %>% 
+  dplyr::mutate(price_per_carat = price / carat)
+
+pryr::object_size(diamonds)
+#> 3.46 MB
+pryr::object_size(diamonds2)
+#> 3.89 MB
+pryr::object_size(diamonds, diamonds2)
+#> 3.89 MB
+```
+
+```{r}
+diamonds$carat[1] <- NA
+pryr::object_size(diamonds)
+#> 3.46 MB
+pryr::object_size(diamonds2)
+#> 3.89 MB
+pryr::object_size(diamonds, diamonds2)
+#> 4.32 MB
+```
+
+The advantage of pipes is that it focuses on `verbs` not `nouns`.
+
+```{r}
+foo_foo %>%
+  hop(through = forest) %>%
+  scoop(up = field_mice) %>%
+  bop(on = head)
+```
+
+Internally this gets translated to something like:
+
+```{r}
+my_pipe <- function(.) {
+  . <- hop(., through = forest)
+  . <- scoop(., up = field_mice)
+  bop(., on = head)
+}
+my_pipe(foo_foo)
+```
+
+Pipes **won't** work for functions that:
+
+1. Use variables in the environment
+
+```{r}
+assign("x", 10)
+x
+
+"x" %>% assign(100)
+x
+```
+
+To use it you have to pass the environment explictly:
+
+```{r}
+env <- environment()
+"x" %>% assign(100, envir = env)
+x
+```
+
+2. Functions that use lazy evaluation
+
+```{r}
+tryCatch(stop("!"), error = function(e) "An error")
+#> [1] "An error"
+
+stop("!") %>% 
+  tryCatch(error = function(e) "An error")
+```
+
+# 18.3 When not to use pipes
+
+- Pipes are longer than (around) 10 steps. Create inermediate objects with meaningful names.
+- We have mutiple inputs and outputs.
+- We are starting to think of a graph structure, pipes are fundamentally linear.
+
+# 18.4 Other tools from magrittr
+
+- The "tee" pipe: `%T>%` to return the left-hand side instead of the right hand. In this case its calling `str()` of nothing:
+
+```{r}
+rnorm(100) %>%
+  matrix(ncol = 2) %>%
+  plot() %>%
+  str()
+```
+
+Here it will call `str()` of `matrix()`.
+
+```{r}
+
+rnorm(100) %>%
+  matrix(ncol = 2) %T>%
+  plot() %>%
+  str()
+```
+
+- Use `%$%` when we want to expand the dataframe columns as variables
+
+```{r}
+mtcars %$%
+  cor(disp, mpg)
+```
+
+- Assign using `%<>%`
+
+```
+mtcars <- mtcars %>% 
+  transform(cyl = cyl * 2)
+```
+
+```{r}
+mtcars %<>% transform(cyl = cyl * 2)
+```
+
+Hadley doesn't like this one that much, better to be explicit.
+
+
+
+
+
+
+
+
