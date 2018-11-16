@@ -440,12 +440,39 @@ mean(c(99, 1:10), trim = 0.1)
 
 The first value is used by default and you have the option of specifying any of the three values.
 
+# 19.6 Return values
+
+## 19.6.1 Explicit return statements
+
+```{r}
+complicated_function <- function(x, y, z) {
+  if (length(x) == 0 || length(y) == 0) {
+    return(0)
+  }
+    
+  # Complicated code here
+}
+```
+
+## 19.6.2 Writing pipeable functions
+
+There is basically two types:
+
+1. With transformations, an object is passed to the function’s first argument and a modified object is returned. 2. With side-effects, the passed object is not transformed. Instead, the function performs an action on the object, like drawing a plot or saving a file. Side-effects functions should “invisibly” return the first argument, so that while they’re not printed they can still be used in a pipeline.
 
 
+```{r}
+show_missings <- function(df) {
+  n <- sum(is.na(df))
+  cat("Missing values: ", n, "\n", sep = "")
+  
+  invisible(df)
+}
 
+# show_missings(mtcars)
 
-
-
+mtcars %>% show_missings()
+```
 
 
 
