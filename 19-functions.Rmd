@@ -469,9 +469,15 @@ show_missings <- function(df) {
   invisible(df)
 }
 
-# show_missings(mtcars)
+show_missings(mtcars)
+```
 
-mtcars %>% show_missings()
+```{r}
+mtcars %>% 
+  show_missings() %>% 
+  mutate(mpg = ifelse(mpg < 20, NA, mpg)) %>% 
+  show_missings() 
+
 ```
 
 
