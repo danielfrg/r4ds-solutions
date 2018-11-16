@@ -300,3 +300,180 @@ x[3:5]
 ```
 
 It returns a vector of `NA`s
+
+# 20.5 Recursive vectors (lists)
+
+If they are named they are basically a Python dict.
+
+```{r}
+x <- list(1, 2, 3)
+x_named <- list(a = 1, b = 2, c = 3)
+str(x)
+str(x_named)
+```
+
+List can contain a mix of objects, including lists
+
+```{r}
+y <- list("a", 1L, 1.5, TRUE, list(1, 2))
+str(y)
+```
+
+## 20.5.2 Subsetting
+
+```{r}
+a <- list(a = 1:3, b = "a string", c = pi, d = list(-1, -5))
+```
+
+```{r}
+str(a[1:2])
+str(a[4])
+```
+
+```{r}
+str(a[[1]])
+str(a[[4]])
+```
+
+Named elements:
+
+```{r}
+a$a
+a[["a"]]
+```
+
+## 20.5.4 Exercises
+
+1. Draw the following lists as nested sets:
+
+- list(a, b, list(c, d), list(e, f))
+- list(list(list(list(list(list(a))))))
+
+2. What happens if you subset a tibble as if you’re subsetting a list? What are the key differences between a list and a tibble?
+
+A tibble is basically a list of vectors, so subsetting AFAICT works in the same way. Tibbles are more strict on its values as all vectors must have the same length.
+
+```{r}
+x <- tibble(a = 1:2, b = 3:4)
+x[["a"]]
+x["a"]
+x[1]
+x[1, ]
+```
+
+# 20.6 Attributes
+
+```{r}
+x <- 1:10
+attr(x, "greeting")
+attr(x, "greeting") <- "Hi!"
+attr(x, "greeting")
+```
+
+```{r}
+attr(x, "farewell") <- "Bye!"
+attributes(x)
+```
+
+# 20.7 Augmented vectors
+
+This are vectors with additional attributes. The most important ones are:
+
+- Factors
+- Dates
+- Date-times
+- Tibbles
+
+## 20.7.1 Factors
+
+```{r}
+x <- factor(c("ab", "cd", "ab"), levels = c("ab", "cd", "ef"))
+typeof(x)
+```
+
+```{r}
+attributes(x)
+```
+
+## 20.7.2 Dates and date-times
+
+Dates in R are numeric vectors that represent the number of days since 1 January 1970.
+
+```{r}
+x <- as.Date("1971-01-01")
+x
+typeof(x)
+unclass(x)
+```
+
+```{r}
+attributes(x)
+```
+
+```{r}
+x <- lubridate::ymd_hm("1970-01-01 01:00")
+typeof(x)
+unclass(x)
+```
+
+## 20.7.3 Tibbles
+
+```{r}
+tb <- tibble::tibble(x = 1:5, y = 5:1)
+typeof(tb)
+```
+
+```{r}
+attributes(tb)
+```
+
+## 20.7.4 Exercises
+
+1. What does hms::hms(3600) return? How does it print? What primitive type is the augmented vector built on top of? What attributes does it use?
+
+```{r}
+t <- hms::hms(3600)
+t
+```
+
+Prints as the 1am time as it creates a time based on the seconds.
+
+The primitive is:
+
+```{r}
+typeof(x)
+```
+
+```{r}
+attributes(t)
+```
+
+
+2. Try and make a tibble that has columns with different lengths. What happens?
+
+```{r}
+tibble(a = 1:3, b = 1:5)
+```
+
+It errors out saying that the short column should have the lenght of the long one.
+
+It can be a single number:
+
+```{r}
+tibble(a = 1, b = 1:5)
+```
+
+3. Based on the definition above, is it ok to have a list as a column of a tibble?
+
+```{r}
+tb <- tibble(x = 1:3, y = list("a", 1, list(1:3)))
+tb
+```
+
+Yes!
+
+```{r}
+tb$y[1]
+tb$y[2]
+tb$y[3]
+```
