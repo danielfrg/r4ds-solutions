@@ -1,0 +1,302 @@
+---
+title: "20-vectors"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+# 20.2 Vector basics
+
+There is two types:
+
+1. Atomic vectors, of which there are six types: logical, integer, double, character, complex, and raw. Integer and double vectors are collectively known as numeric vectors.
+2. Lists, which are sometimes called recursive vectors because lists can contain other lists.
+
+Atomic vectors are homogeneous, while lists can be heterogeneous. 
+
+```{r}
+typeof(letters)
+typeof(1:10)
+typeof(list("a", 1, T))
+```
+
+```{r}
+length(letters)
+length(1:10)
+length(list("a", 1, T))
+```
+
+# 20.3 Important types of atomic vector
+
+## 20.3.5 Exercises
+
+1. Describe the difference between is.finite(x) and !is.infinite(x).
+
+```{r}
+x <- c(0, NA, NaN, Inf, -Inf)
+is.finite(x)
+is.infinite(x)
+```
+
+The main difference is in `NA` and `NaN` as neither function considers them to be a part of their set.
+
+2. Read the source code for dplyr::near() (Hint: to see the source code, drop the ()). How does it work?
+
+```{r}
+dplyr::near
+```
+
+```{r}
+.Machine$double.eps^0.5
+```
+
+`near()` works by calculating the absolute value of the difference and comparing that to a toleration value.
+By default the tolerance is set to the square root of `.Machine$double.eps`, which is the smallest floating point number that the computer can represent.
+
+3. A logical vector can take 3 possible values. How many possible values can an integer vector take? How many possible values can a double take? Use google to do some research.
+
+The number of integers depends on the processor (and R) used, for 32 bit will be able to handle:
+
+```{r}
+2^(32-1)  # minus one for the sign
+.Machine$integer.max  # One less to represent NA_integer_
+```
+
+For doubles R uses 64 bit and conforms with the IEC 60559:
+
+```{r}
+2e-308
+.Machine$double.xmax
+```
+
+4. Brainstorm at least four functions that allow you to convert a double to an integer. How do they differ? Be precise.
+
+```{r}
+x <- seq(-10, 10, by = 0.5)
+x
+round(x)
+floor(x)
+ceiling(x)
+```
+
+5. What functions from the readr package allow you to turn a string into logical, integer, and double vector?
+
+```{r}
+parse_logical(c("TRUE", "FALSE", "1", "0", "true", "t", "NA"))
+parse_integer(c("1235", "0134", "NA"))
+parse_number(c("1.0", "3.5", "$1,000.00", "NA"))
+```
+
+# 20.4 Using atomic vectors
+
+## 20.4.1 Coercion
+
+Two types:
+
+1. Explicit: using as.logical(), as.integer(), as.double(), or as.character()
+2. Implicit when using a vector type in an operation or context that expects another type, e.g. logical + numeric
+
+For example implicit:
+
+```{r}
+x <- sample(20, 100, replace = TRUE)
+y <- x > 10
+sum(y)  # how many are greater than 10?
+mean(y) # what proportion are greater than 10?(y)
+```
+
+When creating a vector with multiple types, the most complex always wins:
+
+```{r}
+typeof(c(TRUE, 1L))
+typeof(c(1L, 1.5))
+typeof(c(1.5, "a"))
+```
+
+## 20.4.3 Scalars and recycling rules
+
+In R there is no scalars, a single number is a vector of length 1. That makes it easy to understand that all functions are vectorized. This also means that there is no need to iterate for simple mathematical computations.
+
+```{r}
+sample(10) + 100
+```
+
+Recycling means that for operations where the vectors have not the same lenght R will expand the short one to the size of the long one:
+
+```{r}
+1:10
+c(1:3, 1:3, 1:3, 1)
+1:10 + 1:3
+```
+
+The tidyverse doesnt approve recycling that much since it can hide error, it has to be done manually with `rep()`
+
+```{r}
+tibble(x = 1:4, y = 1:2)
+```
+
+```{r}
+tibble(x = 1:4, y = rep(1:2, 2))
+```
+
+## 20.4.4 Naming vectors
+
+All types of vectors can be named. You can name them during creation with c():
+
+```{r}
+c(x = 1, y = 2, z = 4)
+```
+
+Or after the fact with purrr::set_names():
+
+```{r}
+set_names(1:3, c("a", "b", "c"))
+```
+
+# 20.4.5 Subsetting
+
+For tibbles we used `filter()` for vectors we use `[]`, R is 1-index.
+
+```{r}
+x <- c("one", "two", "three", "four", "five")
+x[c(3, 2, 5)]
+
+# Negative values drop the elements at the specified positions:
+x[c(-1, -3, -5)] 
+
+# It’s an error to mix positive and negative values:
+x[c(1, -1)]
+```
+
+Subsetting with logic vectors keep `TRUE`s of the operation.
+
+```{r}
+x <- c(10, 3, NA, 5, 8, 1, NA)
+
+# All non-missing values of x
+x[!is.na(x)]
+
+# All even (or missing!) values of x
+x[x %% 2 == 0]
+```
+
+Named vectors can be subsetted with char vectors:
+
+```{r}
+x <- c(abc = 1, def = 2, xyz = 5)
+x[c("xyz", "def")]
+```
+
+## 20.4.6 Exercises
+
+1. What does mean(is.na(x)) tell you about a vector x? What about sum(!is.finite(x))?
+
+`mean(is.na(x))` is the proportion of values that are NAs.
+`sum(!is.finite(x))` is the number of values that are `NA`, `NaN` or infinites
+
+2. Carefully read the documentation of is.vector(). What does it actually test for? Why does is.atomic() not agree with the definition of atomic vectors above?
+
+```{r}
+?is.vector
+```
+
+From docs: is.vector returns TRUE if x is a vector of the specified mode having no attributes other than names. It returns FALSE otherwise.
+
+```{r}
+?is.atomic
+```
+
+is.atomic returns TRUE if x is of an atomic type (or NULL) and FALSE otherwise.
+
+3. Compare and contrast setNames() with purrr::set_names().
+
+In general `set_names()` is more strict as the length of the vectors need to match.
+
+`set_names()` allows for using a function or formula to transform the existing names.
+
+```{r}
+purrr::set_names(c(a = 1, b = 2, c = 3), toupper)
+```
+
+4. Create functions that take a vector as input and returns:
+
+- The last value. Should you use [ or [[?
+
+```{r}
+last_value <- function(x) {
+  if (length(x) > 0) {
+    return(x[[length(x)]])
+  }
+  else {
+    return(x)
+  }
+}
+
+last_value(numeric())
+last_value(1)
+last_value(1:10)
+```
+
+- The elements at even numbered positions.
+
+```{r}
+even_indices <- function(x) {
+  if (length(x) > 0) {
+    x[seq_along(x) %% 2 == 0]
+  } else {
+    x
+  }  
+}
+even_indices(numeric())
+even_indices(1)
+even_indices(1:10)
+```
+
+- Every element except the last value.
+
+```{r}
+not_last <- function(x) {
+  if (length(x) > 0) {
+    x[1:length(x) - 1]
+  } else {
+    x
+  }
+}
+not_last(1:5)
+```
+
+- Only even numbers (and no missing values).
+
+```{r}
+even_numbers <- function(x) {
+  x[(x %% 2 == 0) & !is.na(x) & !is.nan(x) & !is.infinite(x)]
+}
+even_numbers(c(0:4, NA, NaN, Inf))
+```
+
+5. Why is x[-which(x > 0)] not the same as x[x <= 0]?
+
+```{r}
+x <- c(-1:1, Inf, -Inf, NaN, NA)
+x[-which(x > 0)]
+x[x <= 0]
+```
+
+The expressions  `x[-which(x > 0)]` and `x[x <= 0]` return the same values except
+for a `NaN` instead of a `NA` in the `which()` based expression.
+
+6. What happens when you subset with a positive integer that’s bigger than the length of the vector? What happens when you subset with a name that doesn’t exist?
+
+```{r}
+x <- c(10, 20)
+x[3]
+x[3:5]
+```
+
+It returns a vector of `NA`s
