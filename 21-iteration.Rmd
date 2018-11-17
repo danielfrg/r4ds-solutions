@@ -461,5 +461,254 @@ map(list(mtcars), ~ lm(mpg ~ wt, data = .))
 
 # 21.6 Dealing with failure
 
+`safely(function)` is an adverb that returns a modified function that will not throw an error, instead it will return:
+
+1. restult: if error returns `NULL`
+2. error: if no error returns `NULL`
+
+```{r}
+safe_log <- safely(log)
+str(safe_log(10))
+str(safe_log("a"))
+```
+
+Purrr provides two other useful adverbs:
+
+`possibly()` always succeeds. It’s simpler than safely(), because you give it a default value to return when there is an error.
+
+```{r}
+x <- list(1, 10, "a")
+x %>% map_dbl(possibly(log, NA_real_))
+```
+
+`quietly()` performs a similar role to safely(), but instead of capturing errors, it captures printed output, messages, and warnings:
+
+```{r}
+x <- list(1, -1)
+x %>% map(quietly(log)) %>% str()
+```
+
+# 21.7 Mapping over multiple arguments
+
+How do we iterate with along multiple inputs.
+
+```{r}
+mu <- list(5, 10, -3)
+sigma <- list(1, 5, 10)
+seq_along(mu) %>% 
+  map(~rnorm(5, mu[[.]], sigma[[.]])) %>% 
+  str()
+```
+
+But this looks bad. We can use `map2()` or even better `pmap()` that is basically `zip()` on Python.
+
+```{r}
+map2(mu, sigma, rnorm, n = 5) %>% str()
+```
+
+```{r}
+n <- list(1, 3, 5)
+args1 <- list(n, mu, sigma)
+args1 %>%
+  pmap(rnorm) %>% 
+  str()
+```
+
+## 21.7.1 Invoking different functions
+
+We can use `invoke_map()` as some kind of `eval()` in python.
+
+```{r}
+f <- c("runif", "rnorm", "rpois")
+param <- list(
+  list(min = -1, max = 1), 
+  list(sd = 5), 
+  list(lambda = 10)
+)
+
+invoke_map(f, param, n = 5) %>% str()
+```
+
+# 21.8 Walk
+
+`walk()` is an alternative to `map()` that can be used when we want the side effect (print, plot, saving) of the funcion instead of the return value
+
+```{r}
+x <- list(1, "a", 3)
+
+x %>% 
+  walk(print)
+```
+
+Another example saving a couple of images using the general `pwalk()`:
+
+```{r}
+library(ggplot2)
+plots <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(~ggplot(., aes(mpg, wt)) + geom_point())
+paths <- stringr::str_c(names(plots), ".pdf")
+
+pwalk(list(paths, plots), ggsave, path = "output")
+```
+
+# 21.9 Other patterns of for loops
+
+## 21.9.1 Predicate functions
+
+keep() and discard() keep elements of the input where the predicate is TRUE or FALSE respectively:
+
+```{r}
+iris %>% 
+  keep(is.factor) %>% 
+  str()
+
+iris %>% 
+  discard(is.factor) %>% 
+  str()
+```
+
+some() and every() determine if the predicate is true for any or for all of the elements.
+
+```{r}
+x <- list(1:5, letters, list(10))
+
+x %>% 
+  some(is_character)
+
+x %>% 
+  every(is_character)
+
+x %>% 
+  every(is_vector)
+```
+
+detect() finds the first element where the predicate is true; detect_index() returns its position.
+
+```{r}
+x <- sample(10)
+x
+
+x %>% 
+  detect(~ . > 5)
+
+x %>% 
+  detect_index(~ . > 5)
+```
+
+head_while() and tail_while() take elements from the start or end of a vector while a predicate is true:
+
+```{r}
+x
+
+x %>% 
+  head_while(~ . > 5)
+
+x %>% 
+  tail_while(~ . > 5)
+```
+
+## 21.9.2 Reduce and accumulate
+
+This is used when you have multiple items (more useful if its more than 2) and want to reduce them to a singleton.
+
+The reduce function takes a “binary” function (i.e. a function with two primary inputs), and applies it repeatedly to a list until there is only a single element left.
+
+```{r}
+dfs <- list(
+  age = tibble(name = "John", age = 30),
+  sex = tibble(name = c("John", "Mary"), sex = c("M", "F")),
+  trt = tibble(name = "Mary", treatment = "A")
+)
+
+dfs %>% reduce(full_join)
+```
+
+```{r}
+vs <- list(
+  c(1, 3, 5, 6, 10),
+  c(1, 2, 3, 7, 8, 10),
+  c(1, 2, 3, 4, 8, 9, 10)
+)
+
+vs %>% reduce(intersect)
+```
+
+`accumulate()` is similar but it keeps all the interim results. You could use it to implement a cumulative sum:
+
+```{r}
+x <- sample(10)
+x
+
+x %>% accumulate(`+`)
+```
+
+## 21.9.3 Exercises
+
+1. Implement your own version of every() using a for loop. Compare it with purrr::every(). What does purrr’s version do that your version doesn’t?
+
+```{r}
+purrr::every
+```
+
+`purrr::every()` returns `NA` if any item is `NA`.
+
+2. Create an enhanced col_sum() that applies a summary function to every numeric column in a data frame.
+
+```{r}
+col_sum2 <- function(df, f, ...) {
+  map(keep(df, is.numeric), f, ...)
+}
+
+col_sum2(iris, mean)
+```
+
+3. A possible base R equivalent of col_sum() is:
+
+```{r}
+col_sum3 <- function(df, f) {
+  is_num <- sapply(df, is.numeric)
+  df_num <- df[, is_num]
+
+  sapply(df_num, f)
+}
+```
+
+But it has a number of bugs as illustrated with the following inputs:
+
+```{r}
+df <- tibble(
+  x = 1:3, 
+  y = 3:1,
+  z = c("a", "b", "c")
+)
+# OK
+col_sum3(df, mean)
+# Has problems: don't always return numeric vector
+col_sum3(df[1:2], mean)
+col_sum3(df[1], mean)
+col_sum3(df[0], mean)
+```
+
+What causes the bugs?
+
+The problem is that `sapply` does not always return numeric vectors.
+If no columns are selected, instead of returning an empty numeric vector, it returns an empty list.
+This causes an error since we can't use a list with `[`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
