@@ -338,6 +338,7 @@ ggplot(sim4) +
   geom_point(aes(x2, y), color = "red")
 ```
 
+Note the use of seq_range() inside data_grid(). Instead of using every unique value of x, I’m going to use a regularly spaced grid of five values between the minimum and maximum numbers. This is not "needed" but its an useful technique in general.
 
 ```{r}
 mod1 <- lm(y ~ x1 + x2, data = sim4)
