@@ -1,0 +1,99 @@
+---
+title: "29-rmarkdown-formats"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 29.3 Documents
+
+We can have multiple outputs for one document, each one with different options:
+
+```
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+```
+
+# 29.4 Notebooks
+
+Notebooks are a special type of `html_document`. The main difference is that a notebook is used for collaboration and generates a `.nb.html` file that also includes all the code. R Studio can open this file and recreate the `.rmd` that created it.
+
+We can use `github_document` to generate a git friendly version of the notebook.
+
+```
+output:
+  html_notebook: default
+  github_document: default
+```
+
+# 29.5 Presentations
+
+R Markdown comes with three presentation formats built-in:
+
+1. `ioslides_presentation` - HTML presentation with ioslides
+2. `slidy_presentation` - HTML presentation with W3C Slidy
+3. `beamer_presentation` - PDF presentation with LaTeX Beamer.
+
+Two other popular formats are provided by packages:
+
+1. `revealjs::revealjs_presentation` - HTML presentation with reveal.js. Requires the revealjs package.
+2. `rmdshower`, https://github.com/MangoTheCat/rmdshower, provides a wrapper around the shower, https://github.com/shower/shower, presentation engine
+
+# 29.6 Dashboards
+
+We can use Flexdashboards as an output. See the example: `29-rmarkdown-formats-flex-dashboard.rmd`.
+
+```{r}
+# install.packages("flexdashboard")
+# install.packages("DT")
+```
+
+# 29.7 Interactivity
+
+## 29.7.1 htmlwidgets
+
+Some libraries provide interactive html widgets such as `leaflet`.
+
+```{r}
+# install.packages("leaflet")
+```
+
+```{r}
+library(leaflet)
+leaflet() %>%
+  setView(174.764, -36.877, zoom = 16) %>% 
+  addTiles() %>%
+  addMarkers(174.764, -36.877, popup = "Maungawhau") 
+```
+
+There are many packages that provide htmlwidgets, including:
+
+- dygraphs, http://rstudio.github.io/dygraphs/, for interactive time series visualisations.
+- DT, http://rstudio.github.io/DT/, for interactive tables.
+- threejs, https://github.com/bwlewis/rthreejs for interactive 3d plots.
+- DiagrammeR, http://rich-iannone.github.io/DiagrammeR/ for diagrams (like flow charts and simple node-link diagrams).
+
+## 29.7.2 Shiny
+
+htmlwidgets provide only client-side interactivity via javascript. If we want to use R to do more computation we can use Shiny for this. We can set a rmarkdown document to use shiny with:
+
+```
+title: "Shiny Web App"
+output: html_document
+runtime: shiny
+```
+
+```{r}
+library(shiny)
+
+textInput("name", "What is your name?")
+numericInput("age", "How old are you?", NA, min = 0, max = 150)
+```
+
+
+

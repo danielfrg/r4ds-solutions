@@ -1,0 +1,197 @@
+---
+title: "27-r-markdown"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 27.2.1 Exercises
+
+1. Create a new notebook using File > New File > R Notebook. Read the instructions. Practice running the chunks. Verify that you can modify the code, re-run it, and see modified output.
+
+2. Create a new R Markdown document with File > New File > R Markdown… Knit it by clicking the appropriate button. Knit it by using the appropriate keyboard short cut. Verify that you can modify the input and see the output update.
+
+3. Compare and contrast the R notebook and R markdown files you created above. How are the outputs similar? How are they different? How are the inputs similar? How are they different? What happens if you copy the YAML header from one to the other?
+
+They have different output types. The notebook has output: `output: html_notebook` while regular rmarkdown has: `output: html_document`. This changes the output of the cell blocks to have hide/show toggle, maybe a couple of more things?
+
+4. Create one new R Markdown document for each of the three built-in formats: HTML, PDF and Word. Knit each of the three documents. How does the output differ? How does the input differ? (You may need to install LaTeX in order to build the PDF output — RStudio will prompt you if this is necessary.)
+
+# 27.3 Text formating
+
+Text formatting 
+------------------------------------------------------------
+
+*italic*  or _italic_
+**bold**   __bold__
+`code`
+superscript^2^ and subscript~2~
+
+Headings
+------------------------------------------------------------
+
+# 1st Level Header
+
+## 2nd Level Header
+
+### 3rd Level Header
+
+Lists
+------------------------------------------------------------
+
+*   Bulleted list item 1
+
+*   Item 2
+
+    * Item 2a
+
+    * Item 2b
+
+1.  Numbered list item 1
+
+1.  Item 2. The numbers are incremented automatically in the output.
+
+Links and images
+------------------------------------------------------------
+
+<http://example.com>
+
+[linked phrase](http://example.com)
+
+<!-- ![optional caption text](path/to/img.png) -->
+
+Tables 
+------------------------------------------------------------
+
+First Header  | Second Header
+------------- | -------------
+Content Cell  | Content Cell
+Content Cell  | Content Cell
+
+## 27.3.1 Exercises
+
+1. Practice what you’ve learned by creating a brief CV. The title should be your name, and you should include headings for (at least) education or employment. Each of the sections should include a bulleted list of jobs/degrees. Highlight the year in bold.
+
+2. Using the R Markdown quick reference, figure out how to:
+
+- Add a footnote.
+
+A footnote [^1]
+
+[^1]: Here is the footnote. 
+
+- Add a horizontal rule.
+
+***
+
+- Add a block quote.
+
+> quote!
+
+3. Copy and paste the contents of diamond-sizes.Rmd from https://github.com/hadley/r4ds/tree/master/rmarkdown in to a local R markdown document. Check that you can run it, then add text after the frequency polygon that describes its most striking features.
+
+# 27.4 Code chunks
+
+## 27.4.1 Chunk name
+
+Chunks can be given an optional name: ` ```{r by-name} `
+
+## 27.4.2 Chunk options
+
+There is over 60 options from knitr, some of them are:
+
+- `eval = FALSE` prevents code from being evaluated.
+- `include = FALSE` runs the code, but doesn’t show the code or results in the final document.
+- `echo = FALSE` prevents code, but not the results from appearing in the finished file. 
+- `message = FALSE` or `warning = FALSE` prevents messages or warnings from appearing in the finished file.
+- `results = 'hide'` hides printed output
+- `fig.show = 'hide'` hides plots.
+- `error = TRUE` causes the render to continue even if code returns an error.
+
+## 27.4.3 Table
+
+We can show the table with a nice format.
+
+```{r}
+knitr::kable(
+  mtcars[1:5, ], 
+  caption = "A knitr kable."
+)
+```
+
+## 27.4 Caching
+
+We can seralize variables that take a long time to run, and have them look at dependencies. `dependson` should contain a character vector of every chunk that the cached chunk depends on, for example could be: `dependson = c("raw_data", "another_data")`.
+
+```
+# {r raw_data}
+# rawdata <- readr::read_csv("a_very_large_file.csv")
+```
+
+```
+# {r processed_data, cache = TRUE, dependson = "raw_data"}
+processed_data <- rawdata %>% 
+  filter(!is.na(import_var)) %>% 
+  mutate(new_variable = complicated_transformation(x, y, z))
+```
+
+We can also make them look at change on external files
+
+```
+#
+{r raw_data2, cache.extra = file.info("a_very_large_file.csv")}
+rawdata <- readr::read_csv("a_very_large_file.csv")
+```
+
+## 27.4.5 Global options
+
+We can set global options with:
+
+```
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE
+)
+```
+
+## 27.4.6 Inline code
+
+We can compute inline values using  `r inline()`. For example:
+
+```
+We have data about `r nrow(diamonds)` diamonds. Only `r nrow(diamonds) - nrow(smaller)` are larger than 2.5 carats. The distribution of the remainder is shown below:
+```
+
+When the report is generated it calculates those values inline.
+
+# 27.6 YAML header
+
+## 27.6.1 Parameters
+
+We can set parameteres of the document:
+
+```
+---
+output: html_document
+params:
+  my_class: "suv"
+---
+```
+
+That can later be used with the read-only list named `params`:
+
+```
+class <- mpg %>% filter(class == params$my_class)
+```
+
+You can write atomic vectors directly into the YAML header. You can also run arbitrary R expressions by prefacing the parameter value with !r. This is a good way to specify date/time parameters.
+
+```
+params:
+  start: !r lubridate::ymd("2015-01-01")
+  snapshot: !r lubridate::ymd_hms("2015-01-01 12:30:00")
+```
+
+
